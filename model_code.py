@@ -6,6 +6,8 @@ import math
 import scipy.stats as stats
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import griddata
+import plotly.graph_objects as go
+
 
 
 
@@ -159,10 +161,12 @@ def run_sim(Total_ref_num,num_docs,num_nurses):
     return(results)
 
 #########execute###########################################################################################################
-explore_workforce=False
-explore_referral_rate=True#If both are false then a single service model is created
+explore_workforce=True
+explore_referral_rate=False#If both are false then a single service model is created
 if explore_workforce and explore_referral_rate:
+    print('Do not run both explore workforce and referral rate')
     raise ValueError
+
 
 #run the code with default vals but vary a line depending on range
 num_docs_range=np.arange(2,8,1)
@@ -203,47 +207,69 @@ else:
 #print(results.shape)
 #print(results)
 
-plot_3d=False
+plot_3d=True
 plot_2d=False
 # Extract columns
-docs = results[:, 3]  # First independent variable
-nurses = results[:, 4]  # Second independent variable
+docs = results[:, 4]  # First independent variable
+nurses = results[:, 5]  # Second independent variable
 min_time = results[:, 0] # Dependent variable (third column)
 max_time = results[:, 1] # Dependent variable (fourth column)
 mean_time= results[:, 2]
-ref_rate=results[:,5]
+ref_rate=results[:,3]
 if plot_3d:
     # Create plot
-    fig = plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(projection='3d')  # 3D plot
 
-    # Plot first independent set against z1
-    ax.scatter(docs, nurses, min_time, color='red', alpha=0.5, label="Lower bound wait time")
-
-    # Plot first independent set against z2
-    ax.scatter(docs, nurses, max_time, color='red', alpha=0.5, label="Upper bound wait time")
+    # Plot scatters
+    #ax.scatter(docs, nurses, min_time, color='red', alpha=0.2, s=1 ,label="Lower bound wait time")
+    #ax.scatter(docs, nurses, mean_time, color='blue', alpha=0.6, s=3, label="Mean wait time")
+    #ax.scatter(docs, nurses, max_time, color='red', alpha=0.2,s=1, label="Upper bound wait time")
 
     # Define grid for the plane
-    x_range = np.linspace(np.min(num_docs_range), np.max(num_docs_range), 30)  # Adjust based on your data range
-    y_range = np.linspace(np.min(num_nurses_range), np.max(num_nurses_range), 30)
-
+    x_range = np.linspace(np.min(docs), np.max(docs),50)  # Adjust based on your data range
+    y_range = np.linspace(np.min(nurses), np.max(nurses), 50)
     X, Y = np.meshgrid(x_range, y_range)
+
     Z = np.full_like(X, 12)  # Creates a flat plane at z = 12
-    Z1= griddata((x_range,y_range),mean_time,(X,Y),method='cubic')
-    Z2= griddata((x_range,y_range),min_time,(X,Y),method='cubic')
-    Z3= griddata((x_range,y_range),max_time,(X,Y),method='cubic')
-    ax.plot_surface(X, Y, Z, alpha=0.5, color='gray')  # Semi-transparent gray plane
-    ax.plot_surface(X, Y, Z1, alpha=0.5, color='blue')
+    Z1= griddata((docs,nurses),mean_time,(X,Y),method='cubic')
+    Z2= griddata((docs,nurses),min_time,(X,Y),method='cubic')
+    Z3= griddata((docs,nurses),max_time,(X,Y),method='cubic')
+    
+    ax.plot_surface(X, Y, Z, alpha=0.3, color='gray')  # Semi-transparent gray plane
+    ax.plot_surface(X, Y, Z1, alpha=0.8, color='blue')
     ax.plot_surface(X, Y, Z2, alpha=0.5, color='red')
-    ax.plot_surface(X, Y, Z2, alpha=0.5, color='red')
+    ax.plot_surface(X, Y, Z3, alpha=0.5, color='red')
     # Labels and title
     ax.set_xlabel("Number of doctors WTE")
     ax.set_ylabel("Number of nurses WTE")
     ax.set_zlabel("Wait time in months")
-    ax.set_title("3D Scatter Plot of Independent vs Dependent Variables")
+    ax.set_title("3D Surface Plot of Workforce composition vs Wait time with given annual referral rate")
     ax.legend()
-
     plt.show()
+
+    # Create the plotly surface objects
+    fig = go.Figure()
+
+    fig.add_trace(go.Surface(x=X, y=Y, z=Z2, colorscale='Reds', opacity=0.4, name='Lower Bound'))
+    fig.add_trace(go.Surface(x=X, y=Y, z=Z1, colorscale='Blues', opacity=0.9, name='Mean Time'))
+    fig.add_trace(go.Surface(x=X, y=Y, z=Z3, colorscale='Reds', opacity=0.4, name='Upper Bound'))
+
+    # Update layout
+    fig.update_layout(
+        title='Interpolated Wait Times',
+        scene=dict(
+            xaxis_title='Doctors',
+            yaxis_title='Nurses',
+            zaxis_title='Wait Time'
+        ),
+        width=900,
+        height=700
+    )
+    fig.show()
+
+
+
 
 
 if plot_2d:
