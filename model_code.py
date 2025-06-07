@@ -169,8 +169,8 @@ if explore_workforce and explore_referral_rate:
 
 
 #run the code with default vals but vary a line depending on range
-num_docs_range=np.arange(2,8,1)
-num_nurses_range=np.arange(0,6,1)
+num_docs_range=np.arange(2,9,1)
+num_nurses_range=np.arange(0,7,1)
 ref_rate_range=np.arange(300,900,100)
 
 if explore_referral_rate:
@@ -227,8 +227,8 @@ if plot_3d:
     #ax.scatter(docs, nurses, max_time, color='red', alpha=0.2,s=1, label="Upper bound wait time")
 
     # Define grid for the plane
-    x_range = np.linspace(np.min(docs), np.max(docs),50)  # Adjust based on your data range
-    y_range = np.linspace(np.min(nurses), np.max(nurses), 50)
+    x_range = np.linspace(np.min(docs), np.max(docs),30)  # Adjust based on your data range
+    y_range = np.linspace(np.min(nurses), np.max(nurses), 30)
     X, Y = np.meshgrid(x_range, y_range)
 
     Z = np.full_like(X, 12)  # Creates a flat plane at z = 12
@@ -236,10 +236,11 @@ if plot_3d:
     Z2= griddata((docs,nurses),min_time,(X,Y),method='cubic')
     Z3= griddata((docs,nurses),max_time,(X,Y),method='cubic')
     
-    ax.plot_surface(X, Y, Z, alpha=0.3, color='gray')  # Semi-transparent gray plane
+    '''
+    ax.plot_wireframe(X, Y, Z, alpha=0.3, color='gray')  # Semi-transparent gray plane
     ax.plot_surface(X, Y, Z1, alpha=0.8, color='blue')
-    ax.plot_surface(X, Y, Z2, alpha=0.5, color='red')
-    ax.plot_surface(X, Y, Z3, alpha=0.5, color='red')
+    ax.plot_wireframe(X, Y, Z2, alpha=0.5, color='red')
+    ax.plot_wireframe(X, Y, Z3, alpha=0.5, color='red')
     # Labels and title
     ax.set_xlabel("Number of doctors WTE")
     ax.set_ylabel("Number of nurses WTE")
@@ -247,13 +248,15 @@ if plot_3d:
     ax.set_title("3D Surface Plot of Workforce composition vs Wait time with given annual referral rate")
     ax.legend()
     plt.show()
-
+'''
     # Create the plotly surface objects
     fig = go.Figure()
 
-    fig.add_trace(go.Surface(x=X, y=Y, z=Z2, colorscale='Reds', opacity=0.4, name='Lower Bound'))
-    fig.add_trace(go.Surface(x=X, y=Y, z=Z1, colorscale='Blues', opacity=0.9, name='Mean Time'))
-    fig.add_trace(go.Surface(x=X, y=Y, z=Z3, colorscale='Reds', opacity=0.4, name='Upper Bound'))
+    fig.add_trace(go.Surface(x=X, y=Y, z=Z2, colorscale=[[0,'Red'],[1,'Red']], opacity=0.1, name='Lower Bound',showscale=False))
+    fig.add_trace(go.Surface(x=X, y=Y, z=Z1, colorscale='Blues_r', opacity=1, name='Mean Time',showscale=True,colorbar=dict(title="Wait Time (months)")
+))
+    fig.add_trace(go.Surface(x=X, y=Y, z=Z3, colorscale=[[0,'Red'],[1,'Red']], opacity=0.1, name='Upper Bound',showscale=False))
+    fig.add_trace(go.Surface(x=X, y=Y, z=Z, colorscale=[[0,'Gray'],[1,'Gray']], opacity=0.4, name='12 month boundary',showscale=False))
 
     # Update layout
     fig.update_layout(
@@ -264,9 +267,11 @@ if plot_3d:
             zaxis_title='Wait Time'
         ),
         width=900,
-        height=700
+        height=900
     )
     fig.show()
+    fig.write_html("workforceplot.html")
+
 
 
 
