@@ -5,6 +5,8 @@ import random as rand
 import math
 import scipy.stats as stats
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.interpolate import griddata
+
 
 
 '''This code is a model of all non statory work to determine wait times dependant on referral numbers and age distributions. Capacity is calculated annually as it scales linearly with time similarly to demand. '''
@@ -21,13 +23,15 @@ fu_per_clinic_nurse=4 #no of f/u appt
 num_of_clinics_docs = 4#per week per doc
 num_of_clinics_nurses = 3#per week per nurse
 ADHD_fu_num=2#number of follow ups always needed post new assessment
-ADHD_reg_fu_num=2#number of folloow ups needed per year normally for each patient
-ASD_fu_num=3#number of follow ups always needed post new assessment
+ADHD_reg_fu_num=1.8#number of follow ups needed per year normally for each patient. This encompasess discharge rates post assessment
+ASD_fu_num=2.5#number of follow ups always needed post new assessment
 ASD_reg_fu_num=0.2#number of follow ups needed per year normally
-Complex_fu_num=4#number of follow ups always needed post new assessment
-Complex_reg_fu_num=2#number of follow ups needed per year normally
+Complex_fu_num=3.5#number of follow ups always needed post new assessment
+Complex_reg_fu_num=1.5#number of follow ups needed per year normally
 min_age=1.5
 max_age=17
+fu_DNA_rate=0.05
+new_DNA_rate=0.01
 
 free_var_list=[Total_ref_num,num_of_years,
 num_docs,
@@ -58,11 +62,12 @@ Complex_frac_over6=0.3'''
 
 #functions
 #model the age distribution. This model is based on observations of the actual distribution of age at referral over the last 3 years using a skewed normal fit
-def find_age_dist(Total_ref_num,min_age,max_age,delay=1,plot=False):
+def find_age_dist(Total_ref_num,min_age,max_age,delay=1,plot=False,verbose=False):
     '''delay here refers to teh fact that teh distrubution of age when seen will be delayed by the wait time and is hardcoded. This is modelled simply as adding to the peak. default is 1'''
     age_data= np.genfromtxt('ages.csv',delimiter=',',skip_header=1)
     skew,peak_age,peak_sd=stats.skewnorm.fit(age_data)
-    print(f'fitted stats are skew {skew}, peak age {peak_age}, sd {peak_sd}')
+    if verbose:
+        print(f'fitted stats are skew {skew}, peak age {peak_age}, sd {peak_sd}')
     age_dist=stats.skewnorm.rvs(a=skew, loc=peak_age+delay, scale=peak_sd ,size=Total_ref_num)
     age_dist=np.clip(age_dist,min_age,max_age)
     if plot:
@@ -91,18 +96,18 @@ def get_Complex_fu_burden(age_dist,Complex_fu_num,Complex_reg_fu_num,Complex_fra
     Complex_follow_ups = np.sum((Complex_fu_num+(18-age_dist[age_dist<6])*Complex_reg_fu_num)*Complex_frac_under6)+np.sum((Complex_fu_num+(18-age_dist[age_dist>6])*Complex_reg_fu_num)*Complex_frac_over6)#total num of follw ups needed for lifetime of care
     return(Complex_follow_ups)
 
-def get_annual_fu_burdens(age_dist,total_new,total_fu):
+def get_annual_fu_burdens(age_dist,total_new,total_fu,fu_DNA_rate):
     'returns the mean annual fu burden per new patient and the sd of that value. Also returns the mean and upper new to f/u ratios given the age and diagnosis distributions'
     lifetime_ratio=total_fu/total_new# Over the lifetime of the new patient what is the number of follows for a population. This does not vary significantly with ref rate but is dependant on underlying diagnosis and age distribution
-    mean_annual_fu_burden=np.mean(lifetime_ratio/(18-age_dist))
+    mean_annual_fu_burden=(np.mean(lifetime_ratio/(18-age_dist)))*(1+fu_DNA_rate)#taking the mean annual burden over the lifetime introduces the range
     sd_annual_fu_burden=np.std(lifetime_ratio/(18-age_dist))
     upper_lim=np.ceil(mean_annual_fu_burden+sd_annual_fu_burden)
     lower_lim=np.ceil(mean_annual_fu_burden)
     return(mean_annual_fu_burden,sd_annual_fu_burden,upper_lim,lower_lim)
 #print(f"the ideal ratio of new to follow up is 1:{int(upper_lim)} and minimum safe is 1:{int(lower_lim)}")
 
-def get_annual_new_burden(Total_ref_num,num_of_years):
-    new_annual_burden= Total_ref_num/num_of_years
+def get_annual_new_burden(Total_ref_num,num_of_years,new_DNA_rate):
+    new_annual_burden= (Total_ref_num/num_of_years)*(1+new_DNA_rate)
     return(new_annual_burden)
 
 #Calculate capacity
@@ -126,54 +131,94 @@ def new_capacity_nurses(num_nurses,num_of_clinics_nurses,new_per_clinic_nurse,Wo
 #calculate demand
 def get_fu_demand(mean_annual_fu_burden,sd_annual_fu_burden,annual_new_burden):
     '''gets the annual follow up burden from the calculated ratio of new to f/u'''
+    fu_demand_mean=(mean_annual_fu_burden)*annual_new_burden
     fu_demand_min=(mean_annual_fu_burden-sd_annual_fu_burden)*annual_new_burden#using the sd of fu burden as a proxy as it takes into account diagnosis and age
     fu_demand_max=(mean_annual_fu_burden+sd_annual_fu_burden)*annual_new_burden
-    return(fu_demand_max,fu_demand_min)
+    return(fu_demand_max,fu_demand_min,fu_demand_mean)
 
-def get_wait_times(fu_demand_min,fu_demand_max,new_demand,fu_capacity,new_capacity):
+def get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,new_demand,fu_capacity,new_capacity):
+    mean_wait_time=(fu_demand_mean/fu_capacity)+(new_demand/new_capacity)
     min_wait_time=(fu_demand_min/fu_capacity)+(new_demand/new_capacity)
     max_wait_time=(fu_demand_max/fu_capacity)+(new_demand/new_capacity)
     #print(f'The lower bound wait_time using a service workforce of {num_docs} docs and {num_nurses} nurses is {min_wait_time*12} months. The upper bound wait time is {max_wait_time*12} months')
-    return(min_wait_time,max_wait_time)
+    return(min_wait_time,max_wait_time,mean_wait_time)
 
+def run_sim(Total_ref_num,num_docs,num_nurses):
+    '''runs the sim and allows the local variables in teh argument to vary'''
+    age_dist=find_age_dist(Total_ref_num,min_age,max_age)
+    total_fu=get_ADHD_fu_burden(age_dist,ADHD_fu_num,ADHD_reg_fu_num)+get_ASD_fu_burden(age_dist,ASD_fu_num,ASD_reg_fu_num)+get_Complex_fu_burden(age_dist,Complex_fu_num,Complex_reg_fu_num)
+    mean_annual_fu,sd_annual_fu,upper_lim,lower_lim=get_annual_fu_burdens(age_dist,Total_ref_num,total_fu,fu_DNA_rate)
+    #print(f"the ideal ratio of new to follow up is 1:{int(upper_lim)} and minimum safe is 1:{int(lower_lim)}")
+    annual_new=get_annual_new_burden(Total_ref_num,num_of_years,new_DNA_rate)
+    fu_capacity=fu_capacity_docs(num_docs,num_of_clinics_docs,fu_per_clinic_doc)+fu_capacity_nurses(num_nurses,num_of_clinics_nurses,fu_per_clinic_nurse)
+    new_capacity=new_capacity_docs(num_docs,num_of_clinics_docs,new_per_clinic_doc)+new_capacity_nurses(num_nurses,num_of_clinics_nurses,new_per_clinic_nurse)
+    fu_demand_max,fu_demand_min,fu_demand_mean=get_fu_demand(mean_annual_fu,sd_annual_fu,annual_new)
+    min_wait_time,max_wait_time,mean_wait_time=get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,annual_new,fu_capacity,new_capacity)
+    results=np.array([min_wait_time*12,max_wait_time*12,mean_wait_time*12,Total_ref_num,num_docs,num_nurses])
+    results[results<0]=0
+    return(results)
 
 #########execute###########################################################################################################
+explore_workforce=False
+explore_referral_rate=True#If both are false then a single service model is created
+if explore_workforce and explore_referral_rate:
+    raise ValueError
 
 #run the code with default vals but vary a line depending on range
-age_dist=find_age_dist(Total_ref_num,min_age,max_age)
-total_fu=get_ADHD_fu_burden(age_dist,ADHD_fu_num,ADHD_reg_fu_num)+get_ASD_fu_burden(age_dist,ASD_fu_num,ASD_reg_fu_num)+get_Complex_fu_burden(age_dist,Complex_fu_num,Complex_reg_fu_num)
-mean_annual_fu,sd_annual_fu,upper_lim,lower_lim=get_annual_fu_burdens(age_dist,Total_ref_num,total_fu)
-print(f"the ideal ratio of new to follow up is 1:{int(upper_lim)} and minimum safe is 1:{int(lower_lim)}")
-annual_new=get_annual_new_burden(Total_ref_num,num_of_years)
-num_docs_range=[2,3,4,5,6,7,8]
-num_nurses_range=[1,2,3,4,5,6]
-results=np.empty((0,4))
-for i in num_docs_range:
-    for j in num_nurses_range:
-        fu_capacity=fu_capacity_docs(i,num_of_clinics_docs,fu_per_clinic_doc)+fu_capacity_nurses(j,num_of_clinics_nurses,fu_per_clinic_nurse)
-        new_capacity=new_capacity_docs(i,num_of_clinics_docs,new_per_clinic_doc)+new_capacity_nurses(j,num_of_clinics_nurses,new_per_clinic_nurse)
-        fu_demand_max,fu_demand_min=get_fu_demand(mean_annual_fu,sd_annual_fu,annual_new)
-        min_wait_time,max_wait_time=get_wait_times(fu_demand_min,fu_demand_max,annual_new,fu_capacity,new_capacity)
-        results=np.vstack((results,[i,j,min_wait_time*12,max_wait_time*12]))
-        results[results<0]=0
-print(results.shape)
-print(results)   
-        
-plot_3d=False
-plot_2d=True
-# Extract columns
-docs = results[:, 0]  # First independent variable
-nurses = results[:, 1]  # Second independent variable
-min_time = results[:, 2] # Dependent variable (third column)
-max_time = results[:, 3] # Dependent variable (fourth column)
+num_docs_range=np.arange(2,8,1)
+num_nurses_range=np.arange(0,6,1)
+ref_rate_range=np.arange(300,900,100)
 
+if explore_referral_rate:
+    results=np.empty((0,6))
+    for ref_num in ref_rate_range:
+        result=run_sim(ref_num,num_docs,num_nurses)
+        results=np.vstack((results,result))
+    for i,val in enumerate(results[:,3]):
+        print(f"At a referral rate of {val}, the mean wait time is {results[i,2]} months with upper bound {results[i,1]} and lower bound {results[i,0]} months ' ")    
+       
+elif explore_workforce:
+    results=np.empty((0,6))
+    for i in num_docs_range:
+        for j in num_nurses_range:
+            result=run_sim(Total_ref_num,num_docs=i,num_nurses=j)
+            results=np.vstack((results,result))           
+    targ_wait=12# target wait time months
+   # print('all results',results)
+    filtered_results=results[results[:,2]<targ_wait]
+    #print('filtered results',filtered_results)
+    if filtered_results.size>0:
+        min_idx=np.argmin(filtered_results[:,4])#filter by minimum number of doctors needed
+        print(min_idx)
+        print(f'for your service with an annual referral rate of {filtered_results[min_idx,3]} a minimum workforce of {filtered_results[min_idx,4]} WTE doctors and {filtered_results[min_idx,5]} WTE nurses would keep mean wait time less than {targ_wait} months')
+    else:
+        print('No work force combination in that range can meet your wait target. extend the range or increase the target difference')
+            
+
+else:
+    results=np.empty((0,6))
+    result=run_sim(Total_ref_num,num_docs,num_nurses)
+    results=np.vstack((results,result))
+    print(f'for your service with an annual referral rate of {results[0,3]} the mean wait time is {results[0,2]} months with upper bound {results[0,1]} and lower bound {results[0,0]} months ')
+#print(results.shape)
+#print(results)
+
+plot_3d=False
+plot_2d=False
+# Extract columns
+docs = results[:, 3]  # First independent variable
+nurses = results[:, 4]  # Second independent variable
+min_time = results[:, 0] # Dependent variable (third column)
+max_time = results[:, 1] # Dependent variable (fourth column)
+mean_time= results[:, 2]
+ref_rate=results[:,5]
 if plot_3d:
     # Create plot
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(projection='3d')  # 3D plot
 
     # Plot first independent set against z1
-    ax.scatter(docs, nurses, min_time, color='blue', alpha=0.5, label="Lower bound wait time")
+    ax.scatter(docs, nurses, min_time, color='red', alpha=0.5, label="Lower bound wait time")
 
     # Plot first independent set against z2
     ax.scatter(docs, nurses, max_time, color='red', alpha=0.5, label="Upper bound wait time")
@@ -184,7 +229,13 @@ if plot_3d:
 
     X, Y = np.meshgrid(x_range, y_range)
     Z = np.full_like(X, 12)  # Creates a flat plane at z = 12
+    Z1= griddata((x_range,y_range),mean_time,(X,Y),method='cubic')
+    Z2= griddata((x_range,y_range),min_time,(X,Y),method='cubic')
+    Z3= griddata((x_range,y_range),max_time,(X,Y),method='cubic')
     ax.plot_surface(X, Y, Z, alpha=0.5, color='gray')  # Semi-transparent gray plane
+    ax.plot_surface(X, Y, Z1, alpha=0.5, color='blue')
+    ax.plot_surface(X, Y, Z2, alpha=0.5, color='red')
+    ax.plot_surface(X, Y, Z2, alpha=0.5, color='red')
     # Labels and title
     ax.set_xlabel("Number of doctors WTE")
     ax.set_ylabel("Number of nurses WTE")
