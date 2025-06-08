@@ -14,16 +14,31 @@ import plotly.graph_objects as go
 '''This code is a model of all non statory work to determine wait times dependant on referral numbers and age distributions. Capacity is calculated annually as it scales linearly with time similarly to demand. '''
 
 ##Global default Variables. diagnosis rates for each age group <6 and >6 were calculated form the 24/25 referral sheet. This covered 88% of referrals with the remainder being referrrals##
+#referral rate
 Total_ref_num=700
 num_of_years=1
+
+#staffing of service WTE
 num_docs=4 #WTE doctors
 num_nurses=3 #WTE nurses
-new_per_clinic_doc=1 #no new patient appt
-fu_per_clinic_doc=4 #no of f/u appt
-new_per_clinic_nurse=0 #no of new patient appt
-fu_per_clinic_nurse=4 #no of f/u appt
+
+#provide appt numbers and types at a service or individual level to initiate the fu and new capacity per clinic variables
+total_clinic_num_doc=4#total number of non-staturory clinics over a set period for the doctors. Can be a week or month
+total_new_appt_doc=5#total number of new appts over a set period for the doctors. Can be a week or month. Must be same as total clinic num
+total_fu_appt_doc=20#total number of new appts over a set period for the doctors. Can be a week or month. Must be same as total clinic num
+new_per_clinic_doc= total_new_appt_doc/total_clinic_num_doc#no new patient appt per clinic
+fu_per_clinic_doc= total_fu_appt_doc/total_clinic_num_doc #no of f/u appt per clinic
+total_clinic_num_nurse=3#total number of non-staturory clinics over a set period for the nurses. Can be a week or month
+total_new_appt_nurse=0.2#total number of new appts over a set period for the nurses. Can be a week or month. Must be same as total clinic num
+total_fu_appt_nurse=12#total number of new appts over a set period for the nurses. Can be a week or month. Must be same as total clinic num
+new_per_clinic_nurse= total_new_appt_nurse/total_clinic_num_nurse#no new patient appt per clinic
+fu_per_clinic_nurse= total_fu_appt_nurse/total_clinic_num_nurse #no of f/u appt per clinic
+
+#provide number of non statutory clinics that service provides in a week per clinician
 num_of_clinics_docs = 4#per week per doc
 num_of_clinics_nurses = 3#per week per nurse
+
+#provide the diagnostic dependant fu burden. This encompasses the type of service model (1 stop shop, streamed) as well as discharge rates post assessment. ie not all ADHDs need f/u 
 ADHD_fu_num=2#number of follow ups always needed post new assessment
 ADHD_reg_fu_num=1.8#number of follow ups needed per year normally for each patient. This encompasess discharge rates post assessment
 ASD_fu_num=2.5#number of follow ups always needed post new assessment
@@ -73,10 +88,15 @@ def find_age_dist(Total_ref_num,min_age,max_age,delay=1,plot=False,verbose=False
     age_dist=stats.skewnorm.rvs(a=skew, loc=peak_age+delay, scale=peak_sd ,size=Total_ref_num)
     age_dist=np.clip(age_dist,min_age,max_age)
     if plot:
-        plt.hist(age_dist, bins=18, density=False, alpha=0.6, color='blue')
+        x=np.linspace(min(age_data),max(age_data),1000)
+        pdf=stats.skewnorm.pdf(x,skew,peak_age,peak_sd)
+        plt.hist(age_data, bins=18, density=True, alpha=0.4, color='blue',label='Histogram of actual age distribution')
+        plt.hist(age_dist, bins=18, density=True, alpha=0.4, color='red',label='Histogram of simulated age distribution')
+        plt.plot(x,pdf,'r-',lw=2, label='Fitted skew normal pdf')
         plt.xlabel("Years")
         plt.ylabel("Density")
         plt.title("Skewed Normal Distribution")
+        plt.legend()
         plt.show()
     return(age_dist)
 #print(age_dist)
@@ -147,7 +167,7 @@ def get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,new_demand,fu_capa
 
 def run_sim(Total_ref_num,num_docs,num_nurses):
     '''runs the sim and allows the local variables in teh argument to vary'''
-    age_dist=find_age_dist(Total_ref_num,min_age,max_age)
+    age_dist=find_age_dist(Total_ref_num,min_age,max_age,plot=True)
     total_fu=get_ADHD_fu_burden(age_dist,ADHD_fu_num,ADHD_reg_fu_num)+get_ASD_fu_burden(age_dist,ASD_fu_num,ASD_reg_fu_num)+get_Complex_fu_burden(age_dist,Complex_fu_num,Complex_reg_fu_num)
     mean_annual_fu,sd_annual_fu,upper_lim,lower_lim=get_annual_fu_burdens(age_dist,Total_ref_num,total_fu,fu_DNA_rate)
     #print(f"the ideal ratio of new to follow up is 1:{int(upper_lim)} and minimum safe is 1:{int(lower_lim)}")
