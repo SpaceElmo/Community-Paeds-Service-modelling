@@ -123,11 +123,15 @@ def get_Complex_fu_burden(age_dist,Complex_fu_num,Complex_reg_fu_num,Complex_fra
 def get_annual_fu_burdens(age_dist,total_new,total_fu,fu_DNA_rate):
     'returns the mean annual fu burden per new patient and the sd of that value. Also returns the mean and upper new to f/u ratios given the age and diagnosis distributions'
     lifetime_ratio=total_fu/total_new# Over the lifetime of the new patient what is the number of follows for a population. This does not vary significantly with ref rate but is dependant on underlying diagnosis and age distribution
-    mean_annual_fu_burden=(np.mean(lifetime_ratio/(18-age_dist)))*(1+fu_DNA_rate)#taking the mean annual burden over the lifetime introduces the range
-    sd_annual_fu_burden=np.std(lifetime_ratio/(18-age_dist))
-    upper_lim=np.ceil(mean_annual_fu_burden+sd_annual_fu_burden)
-    lower_lim=np.ceil(mean_annual_fu_burden)
-    return(mean_annual_fu_burden,sd_annual_fu_burden,upper_lim,lower_lim)
+    median_annual_fu_burden=(np.median(lifetime_ratio/(18-age_dist)))*(1+fu_DNA_rate)#taking the mean annual burden over the lifetime introduces the range
+    #sd_annual_fu_burden=np.std(lifetime_ratio/(18-age_dist))
+    lower_quantile=np.quantile(lifetime_ratio/(18-age_dist),0.25)
+    upper_quantile=np.quantile(lifetime_ratio/(18-age_dist),0.75)
+    #print('fu burdens per new patient',median_annual_fu_burden,lower_quantile,upper_quantile)
+    upper_lim=np.ceil(upper_quantile)
+    lower_lim=np.ceil(lower_quantile)
+    return(median_annual_fu_burden,lower_quantile,upper_quantile,upper_lim,lower_lim)
+
 #print(f"the ideal ratio of new to follow up is 1:{int(upper_lim)} and minimum safe is 1:{int(lower_lim)}")
 
 def get_annual_new_burden(Total_ref_num,num_of_years,new_DNA_rate):
@@ -153,11 +157,12 @@ def new_capacity_nurses(num_nurses,num_of_clinics_nurses,new_per_clinic_nurse,Wo
     return(new_capacity)
 
 #calculate demand
-def get_fu_demand(mean_annual_fu_burden,sd_annual_fu_burden,annual_new_burden):
+def get_fu_demand(median_annual_fu_burden,lower_quantile,upper_quantile,annual_new_burden):
     '''gets the annual follow up burden from the calculated ratio of new to f/u'''
-    fu_demand_mean=(mean_annual_fu_burden)*annual_new_burden
-    fu_demand_min=(mean_annual_fu_burden-np.sqrt(sd_annual_fu_burden))*annual_new_burden#using the sd of fu burden as a proxy as it takes into account diagnosis and age
-    fu_demand_max=(mean_annual_fu_burden+np.sqrt(sd_annual_fu_burden))*annual_new_burden
+    fu_demand_mean=(median_annual_fu_burden)*annual_new_burden
+    fu_demand_min=(lower_quantile)*annual_new_burden#using the sd of fu burden as a proxy as it takes into account diagnosis and age
+    fu_demand_max=(upper_quantile)*annual_new_burden
+    print('min and max annual fu demand',fu_demand_max,fu_demand_min)
     return(fu_demand_max,fu_demand_min,fu_demand_mean)
 
 def get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,new_demand,fu_capacity,new_capacity):
@@ -172,13 +177,13 @@ def run_sim(Total_ref_num,num_of_years,num_docs,num_nurses,new_per_clinic_doc,fu
     '''runs the sim and allows the local variables in the argument to vary. Uses a dict of default vals'''
     age_dist=find_age_dist(Total_ref_num,min_age,max_age,plot=False)
     total_fu=get_ADHD_fu_burden(age_dist,ADHD_fu_num,ADHD_reg_fu_num)+get_ASD_fu_burden(age_dist,ASD_fu_num,ASD_reg_fu_num)+get_Complex_fu_burden(age_dist,Complex_fu_num,Complex_reg_fu_num)
-    mean_annual_fu,sd_annual_fu,upper_lim,lower_lim=get_annual_fu_burdens(age_dist,Total_ref_num,total_fu,fu_DNA_rate)
+    median_annual_fu_burden,lower_quantile,upper_quantile,upper_lim,lower_lim=get_annual_fu_burdens(age_dist,Total_ref_num,total_fu,fu_DNA_rate)
     #print(f"the ideal ratio of new to follow up is 1:{int(upper_lim)} and minimum safe is 1:{int(lower_lim)}")
-    annual_new=get_annual_new_burden(Total_ref_num,num_of_years,new_DNA_rate)
+    annual_new_burden=get_annual_new_burden(Total_ref_num,num_of_years,new_DNA_rate)
     fu_capacity=fu_capacity_docs(num_docs,num_of_clinics_docs,fu_per_clinic_doc)+fu_capacity_nurses(num_nurses,num_of_clinics_nurses,fu_per_clinic_nurse)
     new_capacity=new_capacity_docs(num_docs,num_of_clinics_docs,new_per_clinic_doc)+new_capacity_nurses(num_nurses,num_of_clinics_nurses,new_per_clinic_nurse)
-    fu_demand_max,fu_demand_min,fu_demand_mean=get_fu_demand(mean_annual_fu,sd_annual_fu,annual_new)
-    min_wait_time,max_wait_time,mean_wait_time=get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,annual_new,fu_capacity,new_capacity)
+    fu_demand_max,fu_demand_min,fu_demand_mean=get_fu_demand(median_annual_fu_burden,lower_quantile,upper_quantile,annual_new_burden)
+    min_wait_time,max_wait_time,mean_wait_time=get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,annual_new_burden,fu_capacity,new_capacity)
     results=np.array([min_wait_time*12,max_wait_time*12,mean_wait_time*12,Total_ref_num,num_docs,num_nurses])
     results[results<0]=0
     return(results)
@@ -225,7 +230,7 @@ if explore_referral_rate:
         ax.legend()
 
 # Show the plot
-        fig.show()
+        plt.show()
         fig.savefig("Ref_rate_plot.png", dpi=800, bbox_inches="tight")
 
 
