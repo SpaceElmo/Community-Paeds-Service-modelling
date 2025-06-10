@@ -162,7 +162,7 @@ def get_fu_demand(median_annual_fu_burden,lower_quantile,upper_quantile,annual_n
     fu_demand_mean=(median_annual_fu_burden)*annual_new_burden
     fu_demand_min=(lower_quantile)*annual_new_burden#using the sd of fu burden as a proxy as it takes into account diagnosis and age
     fu_demand_max=(upper_quantile)*annual_new_burden
-    print('min and max annual fu demand',fu_demand_max,fu_demand_min)
+    #print('min and max annual fu demand',fu_demand_max,fu_demand_min)
     return(fu_demand_max,fu_demand_min,fu_demand_mean)
 
 def get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,new_demand,fu_capacity,new_capacity):
@@ -201,8 +201,8 @@ if explore_workforce and explore_referral_rate:
 num_docs_range=np.arange(2,9,1)
 num_nurses_range=np.arange(0,7,1)
 ref_rate_range=np.arange(300,950,50)
-new_appt_type_range=np.arange(1,5,1)
-fu_appt_type_range=np.arange(0,9,1)
+new_appt_type_range=np.arange(0.5,5,0.5)
+fu_appt_type_range=np.arange(0.1,9,0.5)
 
 if explore_referral_rate:
     results=np.empty((0,6))
@@ -298,7 +298,7 @@ elif explore_workforce:
             width=900,
             height=900
         )
-        plt.show()
+        fig.show()
         fig.write_html("workforceplot.html")    
             
 elif explore_models:
@@ -306,10 +306,11 @@ elif explore_models:
     results=np.empty((0,8))
     for i in new_appt_type_range:
         for j in fu_appt_type_range:
-            params={**default_vals,'fu_per_clinic_doc':j,'new_per_clinic_doc':i}
-            result=run_sim(**params)
-            result=np.append(result,[i,j]).reshape(1,8)#add the new and fu type num
-            results=np.vstack((results,result))
+            if 2*i+j<=8:#limits the total clinic time to 4 hours
+                params={**default_vals,'fu_per_clinic_doc':j,'new_per_clinic_doc':i}
+                result=run_sim(**params)
+                result=np.append(result,[i,j]).reshape(1,8)#add the new and fu type num
+                results=np.vstack((results,result))
     #print(results)        
     plot_3d=True    
     if plot_3d:
@@ -359,7 +360,7 @@ elif explore_models:
             width=900,
             height=900
         )
-        plt.show()
+        fig.show()
         fig.write_html("service_model.html")    
 
 
