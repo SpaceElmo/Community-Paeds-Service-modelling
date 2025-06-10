@@ -40,7 +40,7 @@ num_of_clinics_nurses = 3.5#per week per WTE nurse
 
 #provide the diagnostic dependant fu burden. This encompasses the type of service model (1 stop shop, streamed) as well as discharge rates post assessment. ie not all ADHDs need f/u 
 ADHD_fu_num=2#number of follow ups always needed post new assessment
-ADHD_reg_fu_num=1.8#number of follow ups needed per year normally for each patient. This encompasess discharge rates post assessment
+ADHD_reg_fu_num=2#number of follow ups needed per year normally for each patient. This encompasess discharge rates post assessment
 ASD_fu_num=2.5#number of follow ups always needed post new assessment
 ASD_reg_fu_num=0.2#number of follow ups needed per year normally
 Complex_fu_num=3.5#number of follow ups always needed post new assessment
@@ -122,7 +122,7 @@ def get_Complex_fu_burden(age_dist,Complex_fu_num,Complex_reg_fu_num,Complex_fra
 
 def get_annual_fu_burdens(age_dist,total_new,total_fu,fu_DNA_rate):
     'returns the mean annual fu burden per new patient and the sd of that value. Also returns the mean and upper new to f/u ratios given the age and diagnosis distributions'
-    lifetime_ratio=total_fu/total_new# Over the lifetime of the new patient what is the number of follows for a population. This does not vary significantly with ref rate but is dependant on underlying diagnosis and age distribution
+    lifetime_ratio=total_fu/total_new# Over the lifetime of the new patient what is the number of follows for a population. Remember the n is the same for total fu and new as we modelled teh age distribution with a set scale.  This does not vary significantly with ref rate but is dependant on underlying diagnosis and age distribution
     median_annual_fu_burden=(np.median(lifetime_ratio/(18-age_dist)))*(1+fu_DNA_rate)#taking the mean annual burden over the lifetime introduces the range
     #sd_annual_fu_burden=np.std(lifetime_ratio/(18-age_dist))
     lower_quantile=np.quantile(lifetime_ratio/(18-age_dist),0.25)
@@ -289,12 +289,16 @@ elif explore_workforce:
 
         # Update layout
         fig.update_layout(
-            title='Interpolated Wait Times for different workforce compositions',
+            title=f'Interpolated Wait Times for different workforce compositions at a referral rate of {ref_rate[0]}' ,
             scene=dict(
                 xaxis_title='Doctors',
                 yaxis_title='Nurses',
                 zaxis_title='Wait Time (months)'
             ),
+            annotations=[
+            dict(x=0, y=1.05 ,text=f'A minimum workforce of {filtered_results[min_idx,4]} WTE doctors and {filtered_results[min_idx,5]}\n WTE nurses would keep mean wait time less than {targ_wait} months',showarrow=False, arrowhead=2)
+             ],
+
             width=900,
             height=900
         )
@@ -307,10 +311,20 @@ elif explore_models:
     for i in new_appt_type_range:
         for j in fu_appt_type_range:
             if 2*i+j<=8:#limits the total clinic time to 4 hours
-                params={**default_vals,'fu_per_clinic_doc':j,'new_per_clinic_doc':i}
+                params={**default_vals,'new_per_clinic_doc':i,'fu_per_clinic_doc':j}
                 result=run_sim(**params)
                 result=np.append(result,[i,j]).reshape(1,8)#add the new and fu type num
                 results=np.vstack((results,result))
+    targ_wait=12# target wait time months
+   #print('all results',results)
+    filtered_results=results[results[:,2]<targ_wait]
+    #print('filtered results',filtered_results)
+    if filtered_results.size>0:
+        min_idx=np.argmin(filtered_results[:,6])#filter by minimum new patinet slots needed
+        print(min_idx)
+        print(f'for your service with an annual referral rate of {filtered_results[min_idx,3]}, {filtered_results[min_idx,6]} new slots per clinic with  {filtered_results[min_idx,7]} fu slots would keep mean wait time less than {targ_wait} months')
+    else:
+        print('No work force combination in that range can meet your wait target. extend the range or increase the target difference')            
     #print(results)        
     plot_3d=True    
     if plot_3d:
@@ -351,12 +365,15 @@ elif explore_models:
 
         # Update layout
         fig.update_layout(
-            title='Interpolated Wait Times for different new and f/u compositions for doctors',
+            title=f'Interpolated Wait Times for different new and f/u compositions for doctors with referral rate {ref_rate[0]}',
             scene=dict(
                 xaxis_title='New appt per clinic',
                 yaxis_title='Follow up appts per clinic',
                 zaxis_title='Wait Time (months)'
             ),
+            annotations=[
+            dict(x=0, y=1.05 ,text=f'{filtered_results[min_idx,6]} new slots per clinic with  {filtered_results[min_idx,7]} fu slots would keep mean wait time less than {targ_wait} months',showarrow=False, arrowhead=2)
+             ],
             width=900,
             height=900
         )
