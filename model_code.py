@@ -182,6 +182,7 @@ def run_sim(Total_ref_num,num_of_years,num_docs,num_nurses,new_per_clinic_doc,fu
     annual_new_burden=get_annual_new_burden(Total_ref_num,num_of_years,new_DNA_rate)
     fu_capacity=fu_capacity_docs(num_docs,num_of_clinics_docs,fu_per_clinic_doc)+fu_capacity_nurses(num_nurses,num_of_clinics_nurses,fu_per_clinic_nurse)
     new_capacity=new_capacity_docs(num_docs,num_of_clinics_docs,new_per_clinic_doc)+new_capacity_nurses(num_nurses,num_of_clinics_nurses,new_per_clinic_nurse)
+    #print('new capacity is ',new_capacity)
     fu_demand_max,fu_demand_min,fu_demand_mean=get_fu_demand(median_annual_fu_burden,lower_quantile,upper_quantile,annual_new_burden)
     min_wait_time,max_wait_time,mean_wait_time=get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,annual_new_burden,fu_capacity,new_capacity)
     results=np.array([min_wait_time*12,max_wait_time*12,mean_wait_time*12,Total_ref_num,num_docs,num_nurses])
@@ -190,19 +191,23 @@ def run_sim(Total_ref_num,num_of_years,num_docs,num_nurses,new_per_clinic_doc,fu
 
 #########execute###########################################################################################################
 explore_workforce=False
-explore_referral_rate=False#If both are false then a single service model is created
-explore_models=True
-if explore_workforce and explore_referral_rate:
-    print('Do not run both explore workforce and referral rate')
-    raise ValueError
+explore_referral_rate=True#If both are false then a single service model is created
+explore_models=False
+explore_fu_rate=False
+#if explore_workforce and explore_referral_rate:
+#    print('Do not run both explore workforce and referral rate')
+#    raise ValueError
 
 
 #run the code with default vals but vary a line depending on range
 num_docs_range=np.arange(2,9,1)
 num_nurses_range=np.arange(0,7,1)
-ref_rate_range=np.arange(300,950,50)
+ref_rate_range=np.arange(300,1550,50)
 new_appt_type_range=np.arange(0.5,5,0.5)
 fu_appt_type_range=np.arange(0.1,9,0.5)
+fu_range=np.arange(0.2,4.2,0.2)
+reg_fu_range=np.arange(0.2,4.2,0.2)
+new_capacity_range=np.arange(100,2000,100)
 
 if explore_referral_rate:
     results=np.empty((0,6))
@@ -221,12 +226,16 @@ if explore_referral_rate:
         mean_time= results[:, 2]
         ref_rate=results[:,3]
         fig,ax=plt.subplots()
-        ax.errorbar(ref_rate,mean_time,yerr=[min_time,max_time],fmt='o',capsize=5, capthick=1, alpha=0.5,color='blue', label='Wait time with referral rate')
+        #ax.errorbar(ref_rate,mean_time,yerr=[min_time,max_time],fmt='o',capsize=5, capthick=1, alpha=0.5,color='blue', label='Wait time with referral rate')
+        ax.plot(ref_rate,mean_time,alpha=0.5,color='blue',label='Median')
+        #ax.plot(ref_rate,max_time,alpha=0.2,color='red',label='Upper bound')
+        #ax.plot(ref_rate,min_time,alpha=0.2,color='red',label='Lower bound')
+        ax.fill_between(ref_rate, min_time, max_time, color="blue", alpha=0.2, label="Confidence interval")
         ax.set_xlabel("Referral Rate")
         ax.set_ylabel("Wait time (months)")
         ax.set_title("Wait time for current workforce at different referral rates")
         ax.axhline(y=12, color="red", linestyle="--", linewidth=1, label="12-Month Marker")
-
+        ax.set_xlim(left=min(ref_rate)) 
         ax.legend()
 
 # Show the plot
@@ -262,6 +271,7 @@ elif explore_workforce:
         max_time = results[:, 1] 
         mean_time= results[:, 2]
         ref_rate=results[:,3]
+
         # Create plot
         fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(projection='3d')  # 3D plot
@@ -299,14 +309,14 @@ elif explore_workforce:
             dict(x=0, y=1.05 ,text=f'A minimum workforce of {filtered_results[min_idx,4]} WTE doctors and {filtered_results[min_idx,5]}\n WTE nurses would keep mean wait time less than {targ_wait} months',showarrow=False, arrowhead=2)
              ],
 
-            width=900,
-            height=900
+            #width=900,
+            #height=900
         )
         fig.show()
         fig.write_html("workforceplot.html")    
             
 elif explore_models:
-    #adjusting doctors fu to new ratio only
+    #adjusting doctors fu to new ratio per clinic only
     results=np.empty((0,8))
     for i in new_appt_type_range:
         for j in fu_appt_type_range:
@@ -374,11 +384,86 @@ elif explore_models:
             annotations=[
             dict(x=0, y=1.05 ,text=f'{filtered_results[min_idx,6]} new slots per clinic with  {filtered_results[min_idx,7]} fu slots would keep mean wait time less than {targ_wait} months',showarrow=False, arrowhead=2)
              ],
-            width=900,
-            height=900
+            #width=900,
+            #height=900
         )
         fig.show()
         fig.write_html("service_model.html")    
+
+elif explore_fu_rate:
+    '''Explore the variation in follow up rates for each condition'''
+    results_ADHD=np.empty((0,8))
+    results_ASD=np.empty((0,8))
+    results_Complex=np.empty((0,8))
+    for i in fu_range:
+        for j in reg_fu_range:
+            params={**default_vals,'ADHD_fu_num':i,'ADHD_reg_fu_num':j}
+            result=run_sim(**params)
+            result=np.append(result,[i,j]).reshape(1,8)#add the fu nums
+            results_ADHD=np.vstack((results_ADHD,result))
+            params={**default_vals,'ASD_fu_num':i,'ASD_reg_fu_num':j}
+            result=run_sim(**params)
+            result=np.append(result,[i,j]).reshape(1,8)#add the fu nums
+            results_ASD=np.vstack((results_ASD,result))
+            params={**default_vals,'Complex_fu_num':i,'Complex_reg_fu_num':j}
+            result=run_sim(**params)
+            result=np.append(result,[i,j]).reshape(1,8)#add the fu nums
+            results_Complex=np.vstack((results_Complex,result))               
+    targ_wait=12# target wait time months
+   #print('all results',results)
+    #print('filtered results',filtered_results)
+            
+    #print(results)        
+    plot_3d=True    
+    if plot_3d:
+        docs = results_ADHD[:, 4]  
+        nurses = results_ADHD[:, 5]  
+        mean_time_ADHD= results_ADHD[:, 2]
+        mean_time_ASD= results_ASD[:, 2]
+        mean_time_Complex= results_Complex[:, 2]
+        ref_rate=results_ADHD[:,3]
+        diag_fu_appts = results_ADHD[:,6]#this range is teh same for all conditions
+        reg_fu_appts= results_ADHD[:,7]
+        #print(new_appts,fu_appts)
+        # Create plot
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(projection='3d')  # 3D plot
+
+    
+
+        # Define grid for the plane
+        x_range = np.linspace(np.min(diag_fu_appts), np.max(diag_fu_appts),50)  # Adjust based on your data range
+        y_range = np.linspace(np.min(reg_fu_appts), np.max(reg_fu_appts), 50)
+        #print(x_range,y_range)
+        X, Y = np.meshgrid(x_range, y_range)
+
+        Z = np.full_like(X, 12)  # Creates a flat plane at z = 12
+        Z1= griddata((diag_fu_appts,reg_fu_appts),mean_time_ADHD,(X,Y),method='linear')
+        Z2= griddata((diag_fu_appts,reg_fu_appts),mean_time_ASD,(X,Y),method='linear')
+        Z3= griddata((diag_fu_appts,reg_fu_appts),mean_time_Complex,(X,Y),method='linear')
+        #print(Z,Z1,Z2,Z3)
+        
+            # Create the plotly surface objects
+        fig = go.Figure()
+
+        fig.add_trace(go.Surface(x=X, y=Y, z=Z2, colorscale='Greens_r', opacity=0.5, name='Mean for ASD',showscale=True,colorbar=dict(title="ASD",x=0.8)))
+        fig.add_trace(go.Surface(x=X, y=Y, z=Z1, colorscale='Blues_r', opacity=0.5, name='Mean for ADHD',showscale=True,colorbar=dict(title="ADHD",x=0.85)))
+        fig.add_trace(go.Surface(x=X, y=Y, z=Z3, colorscale='Reds_r', opacity=0.5, name='Mean for Complex',showscale=True,colorbar=dict(title="Complex",x=0.9)))
+        fig.add_trace(go.Surface(x=X, y=Y, z=Z, colorscale=[[0,'Gray'],[1,'Gray']], opacity=0.2, name='12 month boundary',showscale=False))
+
+        # Update layout
+        fig.update_layout(
+            title=f'Interpolated Wait Times for different f/u rates for different conditions with referral rate {ref_rate[0]}',
+            scene=dict(
+                xaxis_title='Diagnostic Follow up appt per patient',
+                yaxis_title='Regular Follow up appts per patient',
+                zaxis_title='Wait Time (months)'
+            ),showlegend=True,
+            #width=900,
+            #height=900
+        )
+        fig.show()
+        fig.write_html("fu_rates_model.html")    
 
 
 else:
