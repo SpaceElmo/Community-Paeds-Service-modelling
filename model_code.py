@@ -211,7 +211,7 @@ options={'Referral Rates':False,'Workforce':False,
 'New to F/U ratio for doctors':False,'Number of follow ups for conditions':False}#alterations here will be effective if streamlit is false. 
 #run_streamlit=True
 options = {key: False for key in options}#set default to No option selected
-
+st.set_page_config(page_title="Tool for Modelling a community paediatric service")
 st.set_page_config(layout="wide")
 
 st.title ("Community Paediatric Service Model to determine Waiting times")
