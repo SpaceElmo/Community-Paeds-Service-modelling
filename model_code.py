@@ -19,25 +19,25 @@ Total_ref_num=700
 num_of_years=1
 
 #staffing of service WTE
-num_docs=5.1 #WTE doctors for comm paeds
-num_nurses=2.4 #WTE nurses for comm paeds
+num_docs=6.1 #WTE doctors for comm paeds
+num_nurses=2.6 #WTE nurses for comm paeds
 
 #provide appt numbers and types at a service or individual level to initiate the fu and new capacity per clinic variables
-new_per_clinic_doc= 1.5#no new patient appt per clinic
-fu_per_clinic_doc= 3.5 #no of f/u appt per clinic
-new_per_clinic_nurse= 0.1#no new patient appt per clinic
+new_per_clinic_doc= 1#no new patient appt per clinic
+fu_per_clinic_doc= 4 #no of f/u appt per clinic
+new_per_clinic_nurse= 0#no new patient appt per clinic
 fu_per_clinic_nurse= 4 #no of f/u appt per clinic
 
 #provide number of non statutory clinics that service provides in a week per clinician
-num_of_clinics_docs = 3.5#per week per WTE doc
-num_of_clinics_nurses = 3.5#per week per WTE nurse
+num_of_clinics_docs = 3#per week per WTE doc
+num_of_clinics_nurses = 3#per week per WTE nurse
 
 #provide the diagnostic dependant fu burden. This encompasses the type of service model (1 stop shop, streamed) as well as discharge rates post assessment. ie not all ADHDs need f/u 
-ADHD_fu_num=2#number of follow ups always needed post new assessment
+ADHD_fu_num=1.5#number of follow ups always needed post new assessment
 ADHD_reg_fu_num=2#number of follow ups needed per year normally for each patient. This encompasess discharge rates post assessment
-ASD_fu_num=2.5#number of follow ups always needed post new assessment
+ASD_fu_num=2#number of follow ups always needed post new assessment
 ASD_reg_fu_num=0.2#number of follow ups needed per year normally
-Complex_fu_num=3.5#number of follow ups always needed post new assessment
+Complex_fu_num=3#number of follow ups always needed post new assessment
 Complex_reg_fu_num=1.5#number of follow ups needed per year normally
 min_age=1.5
 max_age=17.5
