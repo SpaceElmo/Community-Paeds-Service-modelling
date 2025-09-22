@@ -222,33 +222,33 @@ with col1:
     with st.container():
         st.markdown('### Adjust these sliders for your service')
     # Create sliders to set default vals
-        num_docs = st.slider("Select number of WTE docs", min_value=float(num_docs_range[0]), max_value=float(num_docs_range[-1]), step=0.1,value=float(5))
+        num_docs = st.slider("Select number of WTE docs", min_value=float(num_docs_range[0]), max_value=float(num_docs_range[-1]), step=0.1,value=float(6.1))
         default_vals['num_docs']=num_docs
-        num_nurses = st.slider("Select number of WTE nurses", min_value=float(num_nurses_range[0]), max_value=float(num_nurses_range[-1]), step=0.1,value=float(3))
+        num_nurses = st.slider("Select number of WTE nurses", min_value=float(num_nurses_range[0]), max_value=float(num_nurses_range[-1]), step=0.1,value=float(2.6))
         default_vals['num_nurses']=num_nurses
         num_years=st.slider("Select number of years that referrals are counted", min_value=float(1), max_value=float(10), step=0.25,value=float(1))
         default_vals['num_of_years']=num_years
         ref_rate = st.slider("Select total number of referrals over that period of time", min_value=int(ref_rate_range[0]), max_value=int(ref_rate_range[-1]), step=int(50.0),value=int(700))
         default_vals['Total_ref_num']=ref_rate
-        new_per_clinic_doc = st.slider("Select the number of New appointments per clinic per doctor on average", min_value=float(new_appt_type_range[0]), max_value=float(new_appt_type_range[-1]), step=0.1,value=float(1.5))
+        new_per_clinic_doc = st.slider("Select the number of New appointments per clinic per doctor on average", min_value=float(new_appt_type_range[0]), max_value=float(new_appt_type_range[-1]), step=0.1,value=float(1))
         default_vals['new_per_clinic_doc']=new_per_clinic_doc
-        fu_per_clinic_doc = st.slider("Select the number of Follow up appointments per clinic per doctor on average", min_value=float(fu_appt_type_range[0]), max_value=float(fu_appt_type_range[-1]), step=0.1,value=3.5)
+        fu_per_clinic_doc = st.slider("Select the number of Follow up appointments per clinic per doctor on average", min_value=float(fu_appt_type_range[0]), max_value=float(fu_appt_type_range[-1]), step=0.1,value=4)
         default_vals['fu_per_clinic_doc']=fu_per_clinic_doc
-        new_per_clinic_nurse = st.slider("Select the number of New appointments per clinic per Nurse on average", min_value=float(new_appt_type_range[0]), max_value=float(new_appt_type_range[-1]), step=0.1,value=0.1)
+        new_per_clinic_nurse = st.slider("Select the number of New appointments per clinic per Nurse on average", min_value=float(new_appt_type_range[0]), max_value=float(new_appt_type_range[-1]), step=0.1,value=0)
         default_vals['new_per_clinic_nurse']=new_per_clinic_nurse
-        fu_per_clinic_nurse = st.slider("Select the number of Follow up appointments per clinic per Nurse on average", min_value=float(fu_appt_type_range[0]), max_value=float(fu_appt_type_range[-1]), step=0.1,value=3.5)
+        fu_per_clinic_nurse = st.slider("Select the number of Follow up appointments per clinic per Nurse on average", min_value=float(fu_appt_type_range[0]), max_value=float(fu_appt_type_range[-1]), step=0.1,value=4)
         default_vals['fu_per_clinic_nurse']=fu_per_clinic_nurse
         fu_appts_ADHD = st.slider("Select the number of Follow up appointments on average per ADHD patient needed to diagnose ADHD", min_value=float(fu_range[0]), max_value=float(fu_range[-1]), step=0.1,value=1.5)
         default_vals['ADHD_fu_num']=fu_appts_ADHD
         reg_fu_appts_ADHD = st.slider("Select the number of Annual follow up appointments on average per ADHD patient needed to manage ADHD", min_value=float(reg_fu_range[0]), max_value=float(reg_fu_range[-1]), step=0.1,value=1.8)
         default_vals['ADHD_fu_num']=fu_appts_ADHD   
-        fu_appts_ASD = st.slider("Select the number of Follow up appointments on average per ASD patient needed to diagnose ASD", min_value=float(fu_range[0]), max_value=float(fu_range[-1]), step=0.1,value=3.0)
+        fu_appts_ASD = st.slider("Select the number of Follow up appointments on average per ASD patient needed to diagnose ASD", min_value=float(fu_range[0]), max_value=float(fu_range[-1]), step=0.1,value=2.0)
         default_vals['ASD_fu_num']=fu_appts_ASD
-        reg_fu_appts_ASD = st.slider("Select the number of Annual follow up appointments on average per ASD patient needed to manage ASD", min_value=float(reg_fu_range[0]), max_value=float(reg_fu_range[-1]), step=0.1,value=0.1)
+        reg_fu_appts_ASD = st.slider("Select the number of Annual follow up appointments on average per ASD patient needed to manage ASD", min_value=float(reg_fu_range[0]), max_value=float(reg_fu_range[-1]), step=0.1,value=0.2)
         default_vals['ASD_fu_num']=fu_appts_ASD  
-        fu_appts_Complex = st.slider("Select the number of Follow up appointments on average per Complex patient needed to diagnose Complex disorders", min_value=float(fu_range[0]), max_value=float(fu_range[-1]), step=0.1,value=2.5)
+        fu_appts_Complex = st.slider("Select the number of Follow up appointments on average per Complex patient needed to diagnose Complex disorders", min_value=float(fu_range[0]), max_value=float(fu_range[-1]), step=0.1,value=3)
         default_vals['Complex_fu_num']=fu_appts_Complex
-        reg_fu_appts_Complex = st.slider("Select the number of Annual follow up appointments on average per Complex patient needed to manage Complex disorders", min_value=float(reg_fu_range[0]), max_value=float(reg_fu_range[-1]), step=0.1,value=1.8)
+        reg_fu_appts_Complex = st.slider("Select the number of Annual follow up appointments on average per Complex patient needed to manage Complex disorders", min_value=float(reg_fu_range[0]), max_value=float(reg_fu_range[-1]), step=0.1,value=1.5)
         default_vals['Complex_fu_num']=fu_appts_Complex 
         num_clinic_doc = st.slider("Select number of non statutory clinics per week on average a WTE doctor would do", min_value=float(0), max_value=float(10), step=0.1,value=3.5)
         default_vals['num_of_clinics_docs']=num_clinic_doc
