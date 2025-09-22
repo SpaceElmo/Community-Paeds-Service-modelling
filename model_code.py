@@ -394,8 +394,8 @@ with col2:
             
                 col2.plotly_chart(fig, use_container_width=False)
 
-                #fig.show()
-                #fig.write_html("workforceplot.html")    
+                fig.show()
+                fig.write_html("workforceplot.html")    
                     
         elif explore_models:
             #adjusting doctors fu to new ratio per clinic only
@@ -478,8 +478,8 @@ with col2:
                 )
                 
                 st.plotly_chart(fig, use_container_width=False)
-                #fig.show()
-                #fig.write_html("service_model.html")    
+                fig.show()
+                fig.write_html("service_model.html")    
 
         elif explore_fu_rate:
             '''Explore the variation in follow up rates for each condition'''
@@ -555,8 +555,8 @@ with col2:
                     height=1000
                 )
                 st.plotly_chart(fig, use_container_width=False)
-                #fig.show()
-                #fig.write_html("fu_rates_model.html")    
+                fig.show()
+                fig.write_html("fu_rates_model.html")    
 
 
         else:
