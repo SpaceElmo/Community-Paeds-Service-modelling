@@ -234,7 +234,7 @@ with col1:
         default_vals['new_per_clinic_doc']=new_per_clinic_doc
         fu_per_clinic_doc = st.slider("Select the number of Follow up appointments per clinic per doctor on average", min_value=float(fu_appt_type_range[0]), max_value=float(fu_appt_type_range[-1]), step=0.1,value=4)
         default_vals['fu_per_clinic_doc']=fu_per_clinic_doc
-        new_per_clinic_nurse = st.slider("Select the number of New appointments per clinic per Nurse on average", min_value=float(new_appt_type_range[0]), max_value=float(new_appt_type_range[-1]), step=0.1,value=0)
+        new_per_clinic_nurse = st.slider("Select the number of New appointments per clinic per Nurse on average", min_value=float(new_appt_type_range[0]), max_value=float(new_appt_type_range[-1]), step=0.1,value=0.01)
         default_vals['new_per_clinic_nurse']=new_per_clinic_nurse
         fu_per_clinic_nurse = st.slider("Select the number of Follow up appointments per clinic per Nurse on average", min_value=float(fu_appt_type_range[0]), max_value=float(fu_appt_type_range[-1]), step=0.1,value=4)
         default_vals['fu_per_clinic_nurse']=fu_per_clinic_nurse
