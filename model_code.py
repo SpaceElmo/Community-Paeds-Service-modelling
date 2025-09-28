@@ -308,6 +308,7 @@ with col2:
                 ax.axhline(y=12, color="red", linestyle="--", linewidth=1, label="12-Month Marker")
                 ax.set_xlim(left=min(ref_rate)) 
                 ax.legend()
+                st.subheader("Wait Time vs Referral Rate")
                 st.pyplot(fig)
         # Show the plot
                 #plt.show()
