@@ -309,7 +309,8 @@ with col2:
                 ax.set_xlim(left=min(ref_rate)) 
                 ax.legend()
                 st.subheader("Wait Time vs Referral Rate")
-                st.pyplot(fig)
+                st.pyplot(fig,use_container_width=False)
+                #st.plotly_chart(fig, use_container_width=False)
         # Show the plot
                 #plt.show()
                 #fig.savefig("Ref_rate_plot.png", dpi=800, bbox_inches="tight")
