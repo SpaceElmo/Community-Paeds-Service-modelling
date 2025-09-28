@@ -218,6 +218,7 @@ st.title ("Community Paediatric Service Model to determine Waiting times")
 st.write("This model allows you to adjust parameters for your service. Adjust the parameters below for your service. Aspects you choose to explore will be adjusted automatically")
 st.write('This is a numerical toy model of a comm paeds service and may not reflect your service. Feel free to fork the code available at (https://github.com/SpaceElmo/Community-Paeds-Service-modelling) and adjust as you wish.')
 col1, col2 = st.columns(2)  # Adjust the ratio for left/right width
+st.set_page_config(layout="wide")
 with col1:
     with st.container():
         st.markdown('### Adjust these sliders for your service')
