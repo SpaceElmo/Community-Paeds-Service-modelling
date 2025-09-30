@@ -73,9 +73,9 @@ ASD_frac_over6=0.27
 ADHD_frac_over6= 0.43
 Complex_frac_over6=0.3'''
 
-num_docs_range=np.arange(1,10,0.5)
-num_nurses_range=np.arange(0,10,0.5)
-ref_rate_range=np.arange(100,2000,50)
+num_docs_range=np.arange(1,20,0.5)
+num_nurses_range=np.arange(0,20,0.5)
+ref_rate_range=np.arange(100,5000,50)
 new_appt_type_range=np.arange(0,5,0.5)
 fu_appt_type_range=np.arange(0,9,0.5)
 fu_range=np.arange(0,6,0.5)
