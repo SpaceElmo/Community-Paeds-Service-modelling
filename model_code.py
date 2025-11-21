@@ -211,26 +211,39 @@ options={'Referral Rates':False,'Workforce':False,
 'New to F/U ratio for doctors':False,'Number of follow ups for conditions':False}#alterations here will be effective if streamlit is false. 
 #run_streamlit=True
 options = {key: False for key in options}#set default to No option selected
-st.set_page_config(page_title="Tool for Modelling a community paediatric service")
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Tool for Modelling a community paediatric service",layout="wide")
+
 
 st.title ("Community Paediatric Service Model to determine Waiting times")
 st.write("This model allows you to adjust parameters for your service. Adjust the parameters below for your service. Aspects you choose to explore will be adjusted automatically")
 st.write('This is a numerical toy model of a comm paeds service and may not reflect your service. Feel free to fork the code available at (https://github.com/SpaceElmo/Community-Paeds-Service-modelling) and adjust as you wish.')
 col1, col2 = st.columns(2)  # Adjust the ratio for left/right width
-st.set_page_config(layout="wide")
+#st.set_page_config(layout="wide")
 with col1:
     with st.container():
         st.markdown('### Adjust these sliders for your service')
     # Create sliders to set default vals
+        st.markdown('#### Number of staff and non-statutory clinics in your service')
         num_docs = st.slider("Select number of WTE docs", min_value=float(num_docs_range[0]), max_value=float(num_docs_range[-1]), step=0.1,value=float(6.1))
         default_vals['num_docs']=num_docs
         num_nurses = st.slider("Select number of WTE nurses", min_value=float(num_nurses_range[0]), max_value=float(num_nurses_range[-1]), step=0.1,value=float(2.6))
         default_vals['num_nurses']=num_nurses
+        num_clinic_doc = st.slider("Select number of non statutory clinics per week on average a WTE doctor would do", min_value=float(0), max_value=float(10), step=0.1,value=float(3))
+        default_vals['num_of_clinics_docs']=num_clinic_doc
+        num_clinic_nurse = st.slider("Select number of non statutory clinics per week on average a WTE nurse would do", min_value=float(0), max_value=float(10), step=0.1,value=float(3))
+        default_vals['num_of_clinics_nurses']=num_clinic_nurse
+
+        st.markdown('#### Number of referrals you recieve')
         num_years=st.slider("Select number of years that referrals are counted", min_value=float(1), max_value=float(10), step=0.25,value=float(1))
         default_vals['num_of_years']=num_years
-        ref_rate = st.slider("Select total number of referrals over that period of time", min_value=int(ref_rate_range[0]), max_value=int(ref_rate_range[-1]), step=int(50.0),value=int(700))
+        ref_rate = st.slider("Select total number of referrals recieved over that period of time", min_value=int(ref_rate_range[0]), max_value=int(ref_rate_range[-1]), step=int(50.0),value=int(700))
         default_vals['Total_ref_num']=ref_rate
+        max_ref_rate=st.slider("Select the maximum number of referrals you want to check in the plot", min_value=int(ref_rate_range[0]),max_value=int(ref_rate_range[-1]), step=int(50.0),value=int(1500))
+    
+
+
+
+        st.markdown('#### Appointment types (f/u or new) in clinic. Think of this as an average over your service')
         new_per_clinic_doc = st.slider("Select the number of New appointments per clinic per doctor on average", min_value=float(new_appt_type_range[0]), max_value=float(new_appt_type_range[-1]), step=0.1,value=float(1))
         default_vals['new_per_clinic_doc']=new_per_clinic_doc
         fu_per_clinic_doc = st.slider("Select the number of Follow up appointments per clinic per doctor on average", min_value=float(fu_appt_type_range[0]), max_value=float(fu_appt_type_range[-1]), step=0.1,value=float(4))
@@ -239,6 +252,8 @@ with col1:
         default_vals['new_per_clinic_nurse']=new_per_clinic_nurse
         fu_per_clinic_nurse = st.slider("Select the number of Follow up appointments per clinic per Nurse on average", min_value=float(fu_appt_type_range[0]), max_value=float(fu_appt_type_range[-1]), step=0.1,value=float(4))
         default_vals['fu_per_clinic_nurse']=fu_per_clinic_nurse
+
+        st.markdown('#### Appointments needed to diagnose and follow up annually different diagnoses')
         fu_appts_ADHD = st.slider("Select the number of Follow up appointments on average per ADHD patient needed to diagnose ADHD", min_value=float(fu_range[0]), max_value=float(fu_range[-1]), step=0.1,value=float(1.5))
         default_vals['ADHD_fu_num']=fu_appts_ADHD
         reg_fu_appts_ADHD = st.slider("Select the number of Annual follow up appointments on average per ADHD patient needed to manage ADHD", min_value=float(reg_fu_range[0]), max_value=float(reg_fu_range[-1]), step=0.1,value=float(1.8))
@@ -251,10 +266,8 @@ with col1:
         default_vals['Complex_fu_num']=fu_appts_Complex
         reg_fu_appts_Complex = st.slider("Select the number of Annual follow up appointments on average per Complex patient needed to manage Complex disorders", min_value=float(reg_fu_range[0]), max_value=float(reg_fu_range[-1]), step=0.1,value=float(1.5))
         default_vals['Complex_fu_num']=fu_appts_Complex 
-        num_clinic_doc = st.slider("Select number of non statutory clinics per week on average a WTE doctor would do", min_value=float(0), max_value=float(10), step=0.1,value=float(3))
-        default_vals['num_of_clinics_docs']=num_clinic_doc
-        num_clinic_nurse = st.slider("Select number of non statutory clinics per week on average a WTE nurse would do", min_value=float(0), max_value=float(10), step=0.1,value=float(3))
-        default_vals['num_of_clinics_nurses']=num_clinic_nurse
+        
+        st.markdown('#### DNA rates')
         fu_DNA_rate = st.slider("Select the fraction of follow up DNAs", min_value=float(0), max_value=float(0.2), step=0.01,value=float(0.05))
         default_vals['fu_DNA_rate']=fu_DNA_rate
         new_DNA_rate = st.slider("Select the fraction of New patient DNAs", min_value=float(0), max_value=float(0.2), step=0.01,value=float(0.01))
@@ -306,7 +319,11 @@ with col2:
                 ax.set_ylabel("Wait time (months)")
                 ax.set_title("Wait time for current workforce at different referral rates")
                 ax.axhline(y=12, color="red", linestyle="--", linewidth=1, label="12-Month Marker")
-                ax.set_xlim(left=min(ref_rate)) 
+                ax.set_ylim(top=60)
+                ax.set_xlim(left=min(ref_rate),right=max_ref_rate) 
+                ax.minorticks_on()
+                ax.grid(which='both', linestyle=':', linewidth=0.5)
+
                 ax.legend()
                 #st.subheader("Wait Time vs Referral Rate")
                 st.pyplot(fig,use_container_width=False)
