@@ -176,6 +176,11 @@ def get_wait_times(fu_demand_min,fu_demand_max,fu_demand_mean,new_demand,fu_capa
     #print(f'The lower bound wait_time using a service workforce of {num_docs} docs and {num_nurses} nurses is {min_wait_time*12} months. The upper bound wait time is {max_wait_time*12} months')
     return(min_wait_time,max_wait_time,mean_wait_time)
 
+def calc_capacity(fu_time,AL,fu_per_week):
+    '''Calculate teh capacity of individual clinicians. AL is in working weeks'''
+    capacity=fu_per_week*fu_time*(1-AL/52)
+    return(capacity)
+
 def run_sim(Total_ref_num,num_of_years,num_docs,num_nurses,new_per_clinic_doc,fu_per_clinic_doc,new_per_clinic_nurse,fu_per_clinic_nurse,num_of_clinics_docs,num_of_clinics_nurses,
             ADHD_fu_num,ADHD_reg_fu_num,ASD_fu_num,ASD_reg_fu_num,Complex_fu_num,Complex_reg_fu_num,min_age,max_age,fu_DNA_rate,new_DNA_rate,verbose=False):
     '''runs the sim and allows the local variables in the argument to vary. Uses a dict of default vals'''
@@ -272,6 +277,13 @@ with col1:
         default_vals['fu_DNA_rate']=fu_DNA_rate
         new_DNA_rate = st.slider("Select the fraction of New patient DNAs", min_value=float(0), max_value=float(0.2), step=0.01,value=float(0.01))
         default_vals['new_DNA_rate']=fu_DNA_rate
+
+        st.markdown('#### Calculation of clinician capacity. Added as an optional extra function')
+        fu_time = st.slider("Select in how many weeks on average the clinician would need to see their patients again. Default value is 20 weeks", min_value=float(1), max_value=float(52), step=float(1),value=float(20))
+        Ann_leave = st.slider("Select how many working weeks leave the clinican has", min_value=float(0), max_value=float(10), step=float(1),value=float(7))
+        fu_per_week = st.slider("Select how many follow up appointments per week on average that the clinican has", min_value=float(0), max_value=float(40), step=float(1),value=float(15))
+        capacity=calc_capacity(fu_time,Ann_leave,fu_per_week)
+        st.write(f'## This clinician has a patient capacity of {np.round(capacity)}')
 
 #Now choose what to explore
 
